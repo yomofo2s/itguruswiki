@@ -17,17 +17,22 @@ services:
       # this yaml and uncomment the following line and use compose to restart
       # the mediawiki service
       - ./LocalSettings.php:/var/www/html/LocalSettings.php
+    environment:
+      DB_NAME: ${MYSQL_DB}
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      WIKI_SECRET_KEY: ${WIKI_SECRET_KEY}
+      WIKI_UPGRADE_KEY: ${WIKI_UPGRADE_KEY}
+
   # This key also defines the name of the database host used during setup instead of the default "localhost"
   database:
     image: mariadb
     restart: always
-    networks:
-      - docker_network
     environment:
       # @see https://phabricator.wikimedia.org/source/mediawiki/browse/master/includes/DefaultSettings.php
-      MYSQL_DATABASE: my_wiki
-      MYSQL_USER: mediawiki
-      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
     volumes:
       - db:/var/lib/mysql
@@ -35,8 +40,4 @@ services:
 volumes:
   images:
   db:
-
-networks:
-  docker_network:
-    driver: bridge
 
