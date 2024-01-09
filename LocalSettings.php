@@ -19,7 +19,8 @@ if ( !defined( 'MEDIAWIKI' ) ) {
 ## Uncomment this to disable output compression
 # $wgDisableOutputCompression = true;
 
-$wgSitename = "ITGURUS";
+$wgSitename = "IT GURUs";
+$wgMetaNamespace = "IT_GURUs";
 
 ## The URL base path to the directory containing the wiki;
 ## defaults for all runtime URL paths are based off of this.
@@ -54,54 +55,18 @@ $wgEnotifWatchlist = false; # UPO
 $wgEmailAuthentication = true;
 
 ## Database settings
-$wgDBtype = "sqlite";
-$wgDBserver = "";
-$wgDBname = "my_wiki";
-$wgDBuser = "";
-$wgDBpassword = "";
+$wgDBtype = "mysql";
+$wgDBserver = "database";
+$wgDBname = getenv('DB_NAME');
+$wgDBuser = getenv('DB_USER');
+$wgDBpassword = getenv('DB_PASSWORD');
 
-# SQLite-specific settings
-$wgSQLiteDataDir = "/var/www/data";
-$wgObjectCaches[CACHE_DB] = [
-	'class' => SqlBagOStuff::class,
-	'loggroup' => 'SQLBagOStuff',
-	'server' => [
-		'type' => 'sqlite',
-		'dbname' => 'wikicache',
-		'tablePrefix' => '',
-		'variables' => [ 'synchronous' => 'NORMAL' ],
-		'dbDirectory' => $wgSQLiteDataDir,
-		'trxMode' => 'IMMEDIATE',
-		'flags' => 0
-	]
-];
-$wgObjectCaches['db-replicated'] = [
-	'factory' => 'Wikimedia\ObjectFactory\ObjectFactory::getObjectFromSpec',
-	'args' => [ [ 'factory' => 'ObjectCache::getInstance', 'args' => [ CACHE_DB ] ] ]
-];
-$wgLocalisationCacheConf['storeServer'] = [
-	'type' => 'sqlite',
-	'dbname' => "{$wgDBname}_l10n_cache",
-	'tablePrefix' => '',
-	'variables' => [ 'synchronous' => 'NORMAL' ],
-	'dbDirectory' => $wgSQLiteDataDir,
-	'trxMode' => 'IMMEDIATE',
-	'flags' => 0
-];
-$wgJobTypeConf['default'] = [
-	'class' => 'JobQueueDB',
-	'claimTTL' => 3600,
-	'server' => [
-		'type' => 'sqlite',
-		'dbname' => "{$wgDBname}_jobqueue",
-		'tablePrefix' => '',
-		'variables' => [ 'synchronous' => 'NORMAL' ],
-		'dbDirectory' => $wgSQLiteDataDir,
-		'trxMode' => 'IMMEDIATE',
-		'flags' => 0
-	]
-];
-$wgResourceLoaderUseObjectCacheForDeps = true;
+# MySQL specific settings
+$wgDBprefix = "";
+$wgDBssl = false;
+
+# MySQL table options to use during installation or update
+$wgDBTableOptions = "ENGINE=InnoDB, DEFAULT CHARSET=binary";
 
 # Shared database table
 # This has no effect unless $wgSharedDB is also set.
@@ -136,14 +101,14 @@ $wgLocaltimezone = "UTC";
 ## be publicly accessible from the web.
 #$wgCacheDirectory = "$IP/cache";
 
-$wgSecretKey = "$wgSecretKey";
+$wgSecretKey = getenv('WIKI_SECRET_KEY');
 
 # Changing this will log out all existing sessions.
 $wgAuthenticationTokenVersion = "1";
 
 # Site upgrade key. Must be set to a string (default provided) to turn on the
 # web installer while LocalSettings.php is in place
-$wgUpgradeKey = "7f88563b0ed90b0e";
+$wgUpgradeKey = getenv('WIKI_UPGRADE_KEY');
 
 ## For attaching licensing metadata to pages, and displaying an
 ## appropriate copyright notice / icon. GNU Free Documentation
@@ -170,4 +135,4 @@ wfLoadSkin( 'Vector' );
 
 # End of automatically generated settings.
 # Add more configuration options below.
-$wgShowExceptionDetails = true;
+
