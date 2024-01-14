@@ -2,9 +2,9 @@
 
 Help make our life better with Good News.
 
-## Welcome to IT GURUs Page
+## Welcome to IT GURUs Page 
 
-Information Page for IT Gurus have fun
+Read what we do here https://github.com/yomofo2s/itguruswiki/wiki for Information Page for IT Gurus have fun
 
 <h1>How to contribute to the project</h1>
 
