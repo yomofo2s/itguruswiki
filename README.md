@@ -18,7 +18,10 @@ wait for your pull request to be merged to main branch
 ```
 ---
 
-<h1>StarterPack</h1>
+<h1>Project StarterPack</h1>
 
-## Join a Project ##
-### Project Content Management ###
+### https://github.com/users/yomofo2s/projects/3
+
+<h2>Project StarterPack</h2>
+    - Work on a project by contributing and committing to the repo by referring to the welcome page.
+    - 
