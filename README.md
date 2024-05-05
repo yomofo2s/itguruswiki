@@ -1,6 +1,6 @@
 # ITGurus Media Page
 
-<<<<<<< Updated upstream
+<<<<<<< Updated upstream >>>>>>>>>>>>
 Help make our life better with Good News.
 
 ## Welcome to IT GURUs Page 
