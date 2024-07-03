@@ -34,3 +34,12 @@ wait for your pull request to be merged to main branch
 ### Create Merge Request
 ### Once approved, it will be merged
 >>>>>>> Stashed changes
+
+## Admin Region##
+How to upgrade the server: 
+After making changes on the server such as extension, you can only run the update script using a webupdater since we do not have access to the root server. 
+1. Always back up before performing database maintenance.
+2. Navigate your web browser to /mw-config/index.php. Since our Wiki is at http://itgurusgermany.com/w/index.php, then navigate to http://itgurusgermany.com/w/mw-config/index.php.
+3. Select your language and click continue.
+4. The existing installation should be detected. Follow the instructions on the screen to upgrade it.
+5. Then use the "upgrade key", in the LocalSettings.php file to assign $wgUpgradeKey.
