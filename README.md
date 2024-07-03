@@ -1,6 +1,5 @@
 # ITGurus Media Page
 
-<<<<<<< Updated upstream >>>>>>>>>>>>
 Help make our life better with Good News.
 
 ## Welcome to IT GURUs Page 
@@ -26,16 +25,15 @@ wait for your pull request to be merged to main branch
 <h2>Project StarterPack</h2>
     - Work on a project by contributing and committing to the repo by referring to the welcome page.
     - 
-=======
+
 
 ## Contributtion
 
 ### To contribute to this repo, please clone the repo with SSH keys (only accepted)
 ### Create Merge Request
 ### Once approved, it will be merged
->>>>>>> Stashed changes
 
-## Admin Region##
+## Admin Region
 How to upgrade the server: 
 After making changes on the server such as extension, you can only run the update script using a webupdater since we do not have access to the root server. 
 1. Always back up before performing database maintenance.
