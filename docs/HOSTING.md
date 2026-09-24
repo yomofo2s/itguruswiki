@@ -140,15 +140,15 @@ Every push to `main` runs the tests, builds the site (including `vendor/` and `p
 opens the setup link to run migrations, and checks that the site responds. `.env`, uploaded images, logs and sessions on
 the server are never touched.
 
-One-time setup in GitHub → repository **Settings**:
-1. **Secrets and variables → Actions → Secrets:**
+One-time setup in GitHub → repository **Settings → Secrets and variables → Actions**
+(use the **Repository secrets** section, not an environment such as `github-pages`):
+1. **Repository secrets:**
    - `SFTP_HOST`: the FTP server shown in konsoleH (*Access details → FTP*), e.g. `www123.your-server.de`
    - `SFTP_USER`: the FTP user (the login you use in FileZilla)
    - `SFTP_PASSWORD`: its password
    - `ITG_SETUP_TOKEN`: the same value as `ITG_SETUP_TOKEN` in the server's `.env`. Keep that line in `.env`, because deploys use it.
-2. **Variables:** `DEPLOY_ENABLED` = `true`. Optionally set `SFTP_REMOTE_DIR` (default `itguruswiki`, relative to the FTP login folder)
-   and `SITE_URL` (default `https://www.itgurusgermany.com`).
-3. **Environments:** create `production`. Optionally add yourself as a required reviewer, so every deploy waits for your approval.
+2. **Repository variables (optional):** `SFTP_REMOTE_DIR` (default `itguruswiki`, relative to the FTP login folder),
+   `SITE_URL` (default `https://www.itgurusgermany.com`), `DEPLOY_ENABLED` = `false` to pause automatic deploys.
 
 Watch deploys under **Actions**. The `?admin=` option of the setup link is disabled once an administrator exists,
 so a leaked token can't create admin accounts. Change the token (server `.env` and GitHub secret) if you suspect a leak.

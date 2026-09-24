@@ -40,7 +40,7 @@ news, events and a volunteer programme.
 3. SFTP upload to Hetzner. `.env`, uploads, logs and sessions on the server are never touched
 4. `/_setup/<token>` runs new migrations, then a smoke test of `/up` and `/`
 
-Needs the GitHub secrets `SFTP_HOST`, `SFTP_USER`, `SFTP_PASSWORD`, `ITG_SETUP_TOKEN` and the variable `DEPLOY_ENABLED=true`.
+Needs the **repository** secrets `SFTP_HOST`, `SFTP_USER`, `SFTP_PASSWORD` and `ITG_SETUP_TOKEN` (not environment secrets). Set the variable `DEPLOY_ENABLED=false` to pause deploys.
 Full runbook, first-time setup and backups: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Local development
