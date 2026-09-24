@@ -1,43 +1,79 @@
-# ITGurus Media Page
+# IT GURUs Germany
 
-Help make our life better with Good News.
+Help make our life better with good news.
 
-## Welcome to IT GURUs Page 
+The community website for Nigerians and Africans living in, or moving to, Germany. It collects
+verified, up-to-date guides on studying, work, visas, family reunion and everyday life, plus
+news, events and a volunteer programme.
 
-Read what we do here https://github.com/yomofo2s/itguruswiki/wiki for Information Page for IT Gurus have fun
+- Live: https://www.itgurusgermany.com
+- Project board: https://github.com/users/yomofo2s/projects/3
 
-<h1>How to contribute to the project</h1>
+## Features
+
+| Area | What it does |
+|---|---|
+| **Guides** (knowledge base) | Topics, full-text search, Markdown articles with tables, cover images, official source links, reading time, view counts |
+| **Editorial workflow** | Members write guides → *Submit for review* → editors **publish** or **request changes** (authors get an email) |
+| **News & events** | News posts and events with date, location and registration link. Scheduling via a publish date |
+| **Community** | Volunteer sign-up, social links, upcoming events, contact form (stored + emailed) |
+| **Accounts** | Registration with email verification, login with rate limiting, password reset, profile, self-service account deletion |
+| **Roles** | `member` writes guides · `editor` reviews/publishes, manages news, topics, inbox · `admin` also manages roles |
+| **Admin area** | `/admin`: review queue, guides, news & events, topics, messages, volunteers, users & roles |
+| **Security** | Escaped Markdown (no HTML/JS injection), CSRF, honeypots and throttling on public forms, policies on every action, HTTPS + security headers |
+
+## Tech stack
+
+- **Laravel 13** (PHP 8.3+), Blade, Tailwind CSS 4 (built with Vite), self-hosted Inter font (no Google calls, GDPR-friendly)
+- **MariaDB** in production (Hetzner Webhosting). SQLite for local development and tests
+- Cron-driven scheduler for queued mail (shared hosting has no long-running workers)
+
+## Local development
+
+Requirements: PHP 8.3+, Composer, Node 20+.
 
 ```bash
-git clone repo <git@github.com>:yomofo2s/itguruswiki.git
-create a new branch <git checkout -b feature-media-logo>
-make changes to your repository locally
-commit your changes <git add .>
-then <git push --set-upstream origin feature-media-logo>
-wait for your pull request to be merged to main branch
+git clone git@github.com:yomofo2s/itguruswiki.git && cd itguruswiki
+composer install
+cp .env.example .env && php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+php artisan db:seed --class=DemoSeeder   # optional sample content
+npm install && npm run build            # or: npm run dev (hot reload)
+php artisan serve                       # http://localhost:8000
 ```
----
 
-<h1>Project StarterPack</h1>
+Demo logins (DemoSeeder): `admin@example.com` / `editor@example.com`, password `password`.
+Create a real admin with `php artisan app:create-admin you@example.com`.
 
-### https://github.com/users/yomofo2s/projects/3
+Optional: `docker compose up -d` starts MariaDB and Mailpit (see `compose.yaml`).
 
-<h2>Project StarterPack</h2>
-    - Work on a project by contributing and committing to the repo by referring to the welcome page.
-    - 
+Run the tests: `php artisan test`.
 
+## Project layout
 
-## Contributtion
+| Path | Purpose |
+|---|---|
+| `app/Models`, `app/Enums` | Article, Category, Post, User (+ Role), ContactMessage, Volunteer |
+| `app/Http/Controllers` | Public site, `Auth/`, member area (`MyArticleController`), `Admin/` |
+| `app/Policies/ArticlePolicy.php` | Who may view, edit, delete and moderate guides |
+| `resources/views` | Blade templates. `components/layouts` has the app, auth and admin layouts |
+| `database/seeders` | `CategorySeeder` (production topics), `DemoSeeder` (local sample data) |
+| `routes/web.php`, `routes/console.php` | Routes, `app:create-admin`, scheduler |
+| `scripts/` | `deploy.sh`, `post-deploy.sh`, `backup.sh` |
+| `docs/HOSTING.md` | **Production runbook for Hetzner** |
 
-### To contribute to this repo, please clone the repo with SSH keys (only accepted)
-### Create Merge Request
-### Once approved, it will be merged
+## Contributing
 
-## Admin Region
-How to upgrade the server: 
-After making changes on the server such as extension, you can only run the update script using a webupdater since we do not have access to the root server. 
-1. Always back up before performing database maintenance --> mysqldump --databases itguru_db1 -u itguru_1 -p xxxx -h xxx.your-server.de
-2. Navigate your web browser to /mw-config/index.php. Since our Wiki is at http://itgurusgermany.com/w/index.php, then navigate to http://itgurusgermany.com/w/mw-config/index.php.
-3. Select your language and click continue.
-4. The existing installation should be detected. Follow the instructions on the screen to upgrade it.
-5. Then use the "upgrade key", in the LocalSettings.php file to assign $wgUpgradeKey.
+Clone over SSH, branch off `main`, open a pull request. CI (tests on PHP 8.3/8.4, MariaDB
+migrations, secret scan) must be green before merging.
+
+```bash
+git checkout -b feature/my-change
+php artisan test
+git push --set-upstream origin feature/my-change
+```
+
+Never commit `.env`, passwords, keys or database dumps.
+
+See also the [code of conduct](CODE_OF_CONDUCT.md). Licensed under GPL-3.0.
