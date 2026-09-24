@@ -1,0 +1,32 @@
+# Optional local services that mirror production (MariaDB) and catch outgoing mail.
+#   docker compose up -d
+# then in .env:  DB_CONNECTION=mariadb, DB_HOST=127.0.0.1, DB_DATABASE=itgurus,
+#                DB_USERNAME=itgurus, DB_PASSWORD=secret, MAIL_MAILER=smtp
+# Mail UI: http://localhost:8025
+services:
+  mariadb:
+    image: mariadb:11.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MARIADB_DATABASE: itgurus
+      MARIADB_USER: itgurus
+      MARIADB_PASSWORD: secret
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - mariadb:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+volumes:
+  mariadb:

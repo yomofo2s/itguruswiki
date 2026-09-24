@@ -1,0 +1,161 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy main to Hetzner after tests pass"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["8.3", "8.4"]
+    name: Tests (PHP ${{ matrix.php }})
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: dom, curl, mbstring, zip, pdo, sqlite, pdo_sqlite, pdo_mysql, gd, fileinfo
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install PHP dependencies
+        run: |
+          if [ -f composer.lock ]; then composer install --prefer-dist --no-interaction --no-progress
+          else composer update --prefer-dist --no-interaction --no-progress; fi
+
+      - name: Build frontend
+        run: npm ci && npm run build
+
+      - name: Prepare environment
+        run: cp .env.example .env && php artisan key:generate
+
+      - name: Run tests
+        run: php artisan test
+
+
+  migrations-mariadb:
+    runs-on: ubuntu-latest
+    name: Migrations on MariaDB
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_DATABASE: itgurus
+          MARIADB_USER: itgurus
+          MARIADB_PASSWORD: secret
+          MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_mysql, mbstring
+          coverage: none
+      - run: |
+          if [ -f composer.lock ]; then composer install --no-interaction --no-progress
+          else composer update --no-interaction --no-progress; fi
+      - name: Migrate, seed, roll back
+        env:
+          DB_CONNECTION: mariadb
+          DB_HOST: 127.0.0.1
+          DB_DATABASE: itgurus
+          DB_USERNAME: itgurus
+          DB_PASSWORD: secret
+        run: |
+          cp .env.example .env && php artisan key:generate
+          php artisan migrate --force --seed
+          php artisan db:seed --class=DemoSeeder --force
+          php artisan migrate:rollback --force
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  package:
+    # Ready-to-upload build for plans without SSH: download the artifact,
+    # unzip, and upload with FileZilla (see docs/HOSTING.md section 4).
+    needs: [tests]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Build production release
+        run: |
+          if [ -f composer.lock ]; then composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          else composer update --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress; fi
+          npm ci && npm run build
+          rm -rf node_modules tests .git .github
+      - uses: actions/upload-artifact@v4
+        with:
+          name: itgurus-release
+          path: |
+            .
+            !.env
+          include-hidden-files: true
+          retention-days: 14
+
+  deploy:
+    needs: [tests, migrations-mariadb]
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "${{ secrets.HETZNER_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+      - name: Deploy
+        env:
+          SSH_TARGET: ${{ secrets.HETZNER_SSH_TARGET }}
+          REMOTE_PHP: ${{ vars.HETZNER_PHP || 'php' }}
+        run: ./scripts/deploy.sh

@@ -1,0 +1,107 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+@plugin '@tailwindcss/typography';
+@plugin '@tailwindcss/forms';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+
+    /* Brand: deep green (growth, Nigeria) with a warm gold accent (Germany). */
+    --color-brand-50: #ecfdf3;
+    --color-brand-100: #d1fae1;
+    --color-brand-200: #a7f3c7;
+    --color-brand-300: #6ee7a5;
+    --color-brand-400: #34d37f;
+    --color-brand-500: #10b863;
+    --color-brand-600: #059650;
+    --color-brand-700: #047843;
+    --color-brand-800: #065f38;
+    --color-brand-900: #064e30;
+    --color-brand-950: #022c1b;
+
+    --color-gold-300: #fcd34d;
+    --color-gold-400: #fbbf24;
+    --color-gold-500: #f59e0b;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply bg-white text-slate-800 antialiased;
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@utility container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50;
+}
+
+@utility btn-primary {
+    @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:outline-brand-600;
+}
+
+@utility btn-secondary {
+    @apply btn bg-white text-slate-800 ring-1 ring-slate-200 ring-inset hover:bg-slate-50 focus-visible:outline-slate-400;
+}
+
+@utility btn-gold {
+    @apply btn bg-gold-400 text-slate-900 shadow-sm hover:bg-gold-300 focus-visible:outline-gold-500;
+}
+
+@utility btn-danger {
+    @apply btn bg-rose-600 text-white hover:bg-rose-700 focus-visible:outline-rose-600;
+}
+
+@utility btn-sm {
+    @apply px-3 py-1.5 text-xs;
+}
+
+@utility card {
+    @apply rounded-2xl bg-white ring-1 ring-slate-200/80 shadow-sm;
+}
+
+@utility label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+}
+
+@utility input {
+    @apply block w-full rounded-xl border-slate-300 bg-white text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500;
+}
+
+@utility input-error {
+    @apply border-rose-400 focus:border-rose-500 focus:ring-rose-500;
+}
+
+@utility field-error {
+    @apply mt-1.5 text-sm text-rose-600;
+}
+
+@utility badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+@utility nav-link {
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900;
+}
+
+@utility nav-link-active {
+    @apply bg-brand-50 text-brand-800 hover:bg-brand-50 hover:text-brand-800;
+}
+
+@utility prose-content {
+    @apply prose prose-slate max-w-none prose-headings:scroll-mt-24 prose-headings:font-semibold prose-a:text-brand-700 prose-a:underline-offset-2 prose-img:rounded-xl;
+}
