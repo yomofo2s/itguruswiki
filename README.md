@@ -77,6 +77,7 @@ Run the tests: `php artisan test`.
 | `routes/web.php`, `routes/console.php` | Routes, `app:create-admin`, scheduler |
 | `app/Http/Controllers/SetupController.php` | Token-protected `/_setup` link: migrations and first admin (no SSH needed) |
 | `.github/workflows/ci.yml` | Tests, build, automatic SFTP deploy |
+| `.github/workflows/health-check.yml` | Checks the live site: pages, mail (SMTP test), error log. Manual + daily |
 | `scripts/` | `deploy.sh`, `post-deploy.sh` (SSH plans), `backup.sh` (cron plans) |
 | `docs/HOSTING.md` | **Production runbook for Hetzner** |
 | `docs/architecture.png` | Architecture diagram |

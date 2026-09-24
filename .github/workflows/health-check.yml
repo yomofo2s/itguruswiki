@@ -1,0 +1,72 @@
+# Checks the LIVE site from GitHub: pages, mail (SMTP) and recent errors.
+# Run it by hand: GitHub → Actions → health-check → Run workflow.
+# It also runs every morning, so a broken mail password or a 500 error shows up as a red run.
+name: health-check
+
+on:
+  workflow_dispatch:
+    inputs:
+      mailtest:
+        description: "Send a test email to ITG_NOTIFY_EMAIL"
+        type: boolean
+        default: true
+      show_log:
+        description: "Show the latest error-log entries"
+        type: boolean
+        default: true
+  schedule:
+    - cron: "0 6 * * *" # daily 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://www.itgurusgermany.com' }}
+    steps:
+      - name: Pages respond
+        run: |
+          fail=0
+          for path in /up / /guides /news /community /about /contact /login /register; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 -L "$SITE_URL$path")
+            printf '%-12s %s\n' "$path" "$code"
+            [ "$code" = "200" ] || fail=1
+          done
+          exit $fail
+
+      - name: Private files are not public
+        run: |
+          for path in /.env /composer.json /artisan /storage/logs/; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 "$SITE_URL$path")
+            printf '%-16s %s\n' "$path" "$code"
+            if [ "$code" = "200" ]; then echo "::error::$path is publicly readable"; exit 1; fi
+          done
+
+      - name: Mail and error log (via setup link)
+        if: github.event_name == 'schedule' || inputs.mailtest || inputs.show_log
+        env:
+          SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+          MAILTEST: ${{ github.event_name == 'schedule' && '1' || (inputs.mailtest && '1' || '0') }}
+          SHOWLOG: ${{ github.event_name == 'schedule' && '1' || (inputs.show_log && '1' || '0') }}
+        run: |
+          if [ -z "$SETUP_TOKEN" ]; then
+            echo "::error::GitHub secret ITG_SETUP_TOKEN is not set (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          out=$(curl -sS --max-time 120 "$SITE_URL/_setup/$SETUP_TOKEN?mailtest=$MAILTEST&log=$SHOWLOG")
+          # Never print anything that looks like a password
+          echo "$out" | grep -v -i "password"
+          if echo "$out" | grep -q "^Not found"; then
+            echo "::error::Setup link returned 404 - ITG_SETUP_TOKEN in GitHub does not match the server's .env (or the line is missing there)."
+            exit 1
+          fi
+          if [ "$MAILTEST" = "1" ]; then
+            if echo "$out" | grep -q "^MAIL OK"; then
+              echo "::notice::Mail works - check the inbox of ITG_NOTIFY_EMAIL for the test email."
+            else
+              echo "::error::Mail test failed - see the MAIL FAILED line above."
+              exit 1
+            fi
+          fi
