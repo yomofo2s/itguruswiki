@@ -135,14 +135,15 @@ jobs:
 
   deploy:
     # Automatic deployment to Hetzner Webhosting over SFTP (no SSH shell needed).
-    # Runs on every push to main once tests pass - but only after you set the
-    # repository variable DEPLOY_ENABLED=true (see docs/HOSTING.md "Automatic deploys").
+    # Runs on every push to main once tests pass. Secrets are read as REPOSITORY
+    # secrets (Settings -> Secrets and variables -> Actions -> Repository secrets),
+    # not from an environment such as github-pages. Set the repository variable
+    # DEPLOY_ENABLED=false to pause deploys.
     needs: [tests, migrations-mariadb]
     if: >-
-      vars.DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' &&
+      vars.DEPLOY_ENABLED != 'false' && github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy))
     runs-on: ubuntu-latest
-    environment: production
     concurrency:
       group: deploy-production
       cancel-in-progress: false
@@ -150,6 +151,24 @@ jobs:
       REMOTE_DIR: ${{ vars.SFTP_REMOTE_DIR || 'itguruswiki' }}
       SITE_URL: ${{ vars.SITE_URL || 'https://www.itgurusgermany.com' }}
     steps:
+      - name: Check deploy settings
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+        run: |
+          missing=""
+          [ -n "$SFTP_HOST" ] || missing="$missing SFTP_HOST"
+          [ -n "$SFTP_USER" ] || missing="$missing SFTP_USER"
+          [ -n "$SFTP_PASSWORD" ] || missing="$missing SFTP_PASSWORD"
+          [ -n "$SETUP_TOKEN" ] || missing="$missing ITG_SETUP_TOKEN"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secrets:$missing. Add them under Settings → Secrets and variables → Actions → Repository secrets (not in the github-pages environment)."
+            exit 1
+          fi
+          echo "Deploying to $SFTP_HOST:$REMOTE_DIR"
+
       - uses: actions/checkout@v5
       - uses: shivammathur/setup-php@v2
         with:
