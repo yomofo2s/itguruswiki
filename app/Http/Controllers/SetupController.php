@@ -17,7 +17,8 @@ use Throwable;
  *   https://www.itgurusgermany.com/_setup/<token>                      -> migrate + seed + storage link
  *   https://www.itgurusgermany.com/_setup/<token>?admin=you@mail.com   -> also promote that account to admin
  *
- * Remove ITG_SETUP_TOKEN from .env when you are done - the URL then returns 404.
+ * The ?admin= option only works while no administrator exists yet.
+ * Also used by the automatic GitHub deployment (.github/workflows/ci.yml) to run migrations.
  */
 class SetupController extends Controller
 {
@@ -54,7 +55,9 @@ class SetupController extends Controller
         if ($ok && $email = $request->query('admin')) {
             $email = Str::lower(trim($email));
 
-            if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            if (User::where('role', Role::Admin->value)->exists()) {
+                $log[] = 'An administrator already exists - manage roles in the admin area (Users & roles) instead.';
+            } elseif (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $log[] = "'{$email}' is not a valid email address.";
             } elseif ($user = User::where('email', $email)->first()) {
                 $user->forceFill(['role' => Role::Admin, 'email_verified_at' => $user->email_verified_at ?? now()])->save();
@@ -68,7 +71,7 @@ class SetupController extends Controller
             }
         }
 
-        $log[] = $ok ? 'SETUP OK - remove ITG_SETUP_TOKEN from .env when you are finished.' : 'SETUP FAILED - see the errors above.';
+        $log[] = $ok ? 'SETUP OK' : 'SETUP FAILED - see the errors above.';
 
         return response(implode("\n\n", $log)."\n", $ok ? 200 : 500)
             ->header('Content-Type', 'text/plain; charset=utf-8')

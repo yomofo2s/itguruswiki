@@ -59,4 +59,17 @@ class SetupTest extends TestCase
         $this->assertTrue($user->isAdmin());
         $this->assertTrue($user->hasVerifiedEmail());
     }
+
+    public function test_admin_option_is_disabled_once_an_admin_exists(): void
+    {
+        config(['itgurus.setup_token' => $this->token]);
+        User::factory()->admin()->create();
+        $member = User::factory()->create(['email' => 'member@example.com']);
+
+        $this->get('/_setup/'.$this->token.'?admin=member@example.com')
+            ->assertOk()
+            ->assertSee('An administrator already exists');
+
+        $this->assertSame(Role::Member, $member->fresh()->role);
+    }
 }

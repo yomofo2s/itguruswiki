@@ -135,6 +135,24 @@ This is the current setup for itgurusgermany.com.
   **Remove the line from `.env` afterwards**; the URL then returns 404. Repeat after each upload that includes new migrations.
 - **Backups:** see §7. Without cron, use Hetzner's nightly backups plus a manual export.
 
+### 6d. Automatic deploys from GitHub (no SSH needed)
+Every push to `main` runs the tests, builds the site (including `vendor/` and `public/build/`), uploads it by **SFTP**,
+opens the setup link to run migrations, and checks that the site responds. `.env`, uploaded images, logs and sessions on
+the server are never touched.
+
+One-time setup in GitHub → repository **Settings**:
+1. **Secrets and variables → Actions → Secrets:**
+   - `SFTP_HOST`: the FTP server shown in konsoleH (*Access details → FTP*), e.g. `www123.your-server.de`
+   - `SFTP_USER`: the FTP user (the login you use in FileZilla)
+   - `SFTP_PASSWORD`: its password
+   - `ITG_SETUP_TOKEN`: the same value as `ITG_SETUP_TOKEN` in the server's `.env`. Keep that line in `.env`, because deploys use it.
+2. **Variables:** `DEPLOY_ENABLED` = `true`. Optionally set `SFTP_REMOTE_DIR` (default `itguruswiki`, relative to the FTP login folder)
+   and `SITE_URL` (default `https://www.itgurusgermany.com`).
+3. **Environments:** create `production`. Optionally add yourself as a required reviewer, so every deploy waits for your approval.
+
+Watch deploys under **Actions**. The `?admin=` option of the setup link is disabled once an administrator exists,
+so a leaked token can't create admin accounts. Change the token (server `.env` and GitHub secret) if you suspect a leak.
+
 ## 7. Backups — don't lose the database again
 
 **Without cron:** Hetzner backs up the account nightly and keeps the backups for 14 days (konsoleH → *Backup*).

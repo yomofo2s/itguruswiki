@@ -134,10 +134,21 @@ jobs:
           retention-days: 14
 
   deploy:
+    # Automatic deployment to Hetzner Webhosting over SFTP (no SSH shell needed).
+    # Runs on every push to main once tests pass - but only after you set the
+    # repository variable DEPLOY_ENABLED=true (see docs/HOSTING.md "Automatic deploys").
     needs: [tests, migrations-mariadb]
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy && github.ref == 'refs/heads/main'
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy))
     runs-on: ubuntu-latest
     environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      REMOTE_DIR: ${{ vars.SFTP_REMOTE_DIR || 'itguruswiki' }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://www.itgurusgermany.com' }}
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -148,14 +159,44 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: SSH key
+
+      - name: Build production release
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo "${{ secrets.HETZNER_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-      - name: Deploy
+          if [ -f composer.lock ]; then composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          else composer update --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress; fi
+          npm ci && npm run build
+
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Upload via SFTP
         env:
-          SSH_TARGET: ${{ secrets.HETZNER_SSH_TARGET }}
-          REMOTE_PHP: ${{ vars.HETZNER_PHP || 'php' }}
-        run: ./scripts/deploy.sh
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          # Never touch server-only data: .env, uploads, logs, sessions, caches.
+          EXCLUDES="-x ^\.git/ -x ^\.github/ -x ^node_modules/ -x ^tests/ -x ^\.env$ -x ^\.env\. \
+            -x ^storage/ -x ^public/storage -x ^bootstrap/cache/ -x ^database/.*\.sqlite -x ^vendor/"
+          lftp --env-password -u "$SFTP_USER" "sftp://$SFTP_HOST" <<LFTP
+          set sftp:auto-confirm yes
+          set net:max-retries 3
+          set net:timeout 30
+          set mirror:parallel-transfer-count 4
+          mirror --reverse --delete --verbose=1 --ignore-time vendor/ $REMOTE_DIR/vendor/
+          mirror --reverse --delete --verbose=1 $EXCLUDES ./ $REMOTE_DIR/
+          bye
+          LFTP
+
+      - name: Run database migrations
+        env:
+          SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+        run: |
+          out=$(curl -sS --max-time 120 "$SITE_URL/_setup/$SETUP_TOKEN")
+          echo "$out" | grep -v -i "password"
+          echo "$out" | grep -q "SETUP OK"
+
+      - name: Smoke test
+        run: |
+          curl -fsS --max-time 30 "$SITE_URL/up" > /dev/null
+          curl -fsS --max-time 30 "$SITE_URL/" | grep -q "IT GURUs"
