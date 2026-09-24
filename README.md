@@ -9,6 +9,8 @@ news, events and a volunteer programme.
 - Live: https://www.itgurusgermany.com
 - Project board: https://github.com/users/yomofo2s/projects/3
 
+![Architecture](docs/architecture.png)
+
 ## Features
 
 | Area | What it does |
@@ -26,7 +28,20 @@ news, events and a volunteer programme.
 
 - **Laravel 13** (PHP 8.3+), Blade, Tailwind CSS 4 (built with Vite), self-hosted Inter font (no Google calls, GDPR-friendly)
 - **MariaDB** in production (Hetzner Webhosting). SQLite for local development and tests
-- Cron-driven scheduler for queued mail (shared hosting has no long-running workers)
+- Hosting plan without SSH or cron: mail is sent immediately (`QUEUE_CONNECTION=sync`), sessions and cache are stored in files,
+  and database migrations run through a token-protected setup link (`/_setup/<token>`)
+
+## Deployment
+
+**Every merge to `main` deploys automatically** (`.github/workflows/ci.yml`):
+
+1. Tests on PHP 8.3 and 8.4, migrations on MariaDB, secret scan
+2. Production build: `composer install --no-dev` + `npm run build`
+3. SFTP upload to Hetzner. `.env`, uploads, logs and sessions on the server are never touched
+4. `/_setup/<token>` runs new migrations, then a smoke test of `/up` and `/`
+
+Needs the GitHub secrets `SFTP_HOST`, `SFTP_USER`, `SFTP_PASSWORD`, `ITG_SETUP_TOKEN` and the variable `DEPLOY_ENABLED=true`.
+Full runbook, first-time setup and backups: [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Local development
 
@@ -60,13 +75,16 @@ Run the tests: `php artisan test`.
 | `resources/views` | Blade templates. `components/layouts` has the app, auth and admin layouts |
 | `database/seeders` | `CategorySeeder` (production topics), `DemoSeeder` (local sample data) |
 | `routes/web.php`, `routes/console.php` | Routes, `app:create-admin`, scheduler |
-| `scripts/` | `deploy.sh`, `post-deploy.sh`, `backup.sh` |
+| `app/Http/Controllers/SetupController.php` | Token-protected `/_setup` link: migrations and first admin (no SSH needed) |
+| `.github/workflows/ci.yml` | Tests, build, automatic SFTP deploy |
+| `scripts/` | `deploy.sh`, `post-deploy.sh` (SSH plans), `backup.sh` (cron plans) |
 | `docs/HOSTING.md` | **Production runbook for Hetzner** |
+| `docs/architecture.png` | Architecture diagram |
 
 ## Contributing
 
-Clone over SSH, branch off `main`, open a pull request. CI (tests on PHP 8.3/8.4, MariaDB
-migrations, secret scan) must be green before merging.
+Clone over SSH, branch off `main`, open a pull request **into `main`**. CI (tests on PHP 8.3/8.4, MariaDB
+migrations, secret scan) must be green before merging. Merging deploys to the live site.
 
 ```bash
 git checkout -b feature/my-change

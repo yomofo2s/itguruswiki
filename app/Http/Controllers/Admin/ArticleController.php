@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\SafeMail;
 use App\Enums\ArticleStatus;
 use App\Http\Controllers\Concerns\HandlesCoverImage;
 use App\Http\Controllers\Controller;
@@ -39,7 +40,7 @@ class ArticleController extends Controller
         $article->review_note = null;
         $this->markReviewed($request, $article);
 
-        $article->author?->notify(new ArticleReviewed($article));
+        SafeMail::send(fn () => $article->author?->notify(new ArticleReviewed($article)));
 
         return back()->with('status', "\"{$article->title}\" is now live.");
     }
@@ -52,7 +53,7 @@ class ArticleController extends Controller
         $article->review_note = $data['review_note'];
         $this->markReviewed($request, $article);
 
-        $article->author?->notify(new ArticleReviewed($article));
+        SafeMail::send(fn () => $article->author?->notify(new ArticleReviewed($article)));
 
         return back()->with('status', 'Changes requested - the author has been notified.');
     }
