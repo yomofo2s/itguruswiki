@@ -72,4 +72,14 @@ class SetupTest extends TestCase
 
         $this->assertSame(Role::Member, $member->fresh()->role);
     }
+
+    public function test_mail_test_and_log_options(): void
+    {
+        config(['itgurus.setup_token' => $this->token, 'mail.default' => 'array']);
+
+        $this->get('/_setup/'.$this->token.'?mailtest=1&log=1')
+            ->assertOk()
+            ->assertSee('MAIL OK')
+            ->assertSee('SETUP OK');
+    }
 }

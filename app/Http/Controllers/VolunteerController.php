@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SafeMail;
 use App\Models\Volunteer;
 use App\Notifications\VolunteerSignedUp;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
@@ -22,10 +24,10 @@ class VolunteerController extends Controller
             'website' => ['prohibited'],
         ]);
 
-        $volunteer = Volunteer::create($data);
+        $volunteer = Volunteer::create(Arr::except($data, 'website'));
 
-        Notification::route('mail', config('itgurus.notify_email'))
-            ->notify(new VolunteerSignedUp($volunteer));
+        SafeMail::send(fn () => Notification::route('mail', config('itgurus.notify_email'))
+            ->notify(new VolunteerSignedUp($volunteer)));
 
         return redirect()->to(route('community').'#volunteer')
             ->with('status', 'Welcome aboard! We will get in touch with you soon.');

@@ -67,4 +67,16 @@ class ContactAndVolunteerTest extends TestCase
         $this->post('/community/volunteer', ['name' => 'X', 'email' => 'x@example.com', 'interest' => 'hacker'])
             ->assertSessionHasErrors('interest');
     }
+
+    public function test_contact_form_still_works_when_the_mail_server_fails(): void
+    {
+        Notification::shouldReceive('route')->andThrow(new \RuntimeException('SMTP down'));
+
+        $this->post('/contact', [
+            'name' => 'Chidi', 'email' => 'chidi@example.com', 'website' => '',
+            'subject' => 'Question', 'message' => 'Is the site working without mail?',
+        ])->assertRedirect('/contact')->assertSessionHas('status');
+
+        $this->assertDatabaseHas('contact_messages', ['email' => 'chidi@example.com']);
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Support\SafeMail;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
@@ -34,11 +35,12 @@ class RegisteredUserController extends Controller
             'password' => $data['password'],
         ]);
 
-        event(new Registered($user));
+        $sent = SafeMail::send(fn () => event(new Registered($user)));
 
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('verification.notice');
+        return redirect()->route('verification.notice')->with('status', $sent ? null
+            : 'Your account was created, but we could not send the confirmation email right now. Please use "Resend" in a few minutes.');
     }
 }

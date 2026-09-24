@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Support\SafeMail;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Auth\Events\PasswordReset;
@@ -23,7 +24,7 @@ class PasswordResetController extends Controller
     {
         $request->validate(['email' => ['required', 'email']]);
 
-        Password::sendResetLink($request->only('email'));
+        SafeMail::send(fn () => Password::sendResetLink($request->only('email')));
 
         // Same answer whether or not the address exists (no account enumeration).
         return back()->with('status', 'If an account exists for that address, we have emailed a password reset link.');

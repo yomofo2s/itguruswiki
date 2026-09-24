@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Support\SafeMail;
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
@@ -31,8 +32,10 @@ class EmailVerificationController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        $sent = SafeMail::send(fn () => $request->user()->sendEmailVerificationNotification());
 
-        return back()->with('status', 'A new verification link has been sent to your email address.');
+        return back()->with('status', $sent
+            ? 'A new verification link has been sent to your email address.'
+            : 'We could not send the email right now. Please try again later or contact us.');
     }
 }

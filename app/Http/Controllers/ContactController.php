@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SafeMail;
 use App\Models\ContactMessage;
 use App\Notifications\ContactMessageReceived;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\View\View;
@@ -26,10 +28,10 @@ class ContactController extends Controller
             'website' => ['prohibited'], // honeypot
         ]);
 
-        $message = ContactMessage::create($data + ['ip_address' => $request->ip()]);
+        $message = ContactMessage::create(Arr::except($data, 'website') + ['ip_address' => $request->ip()]);
 
-        Notification::route('mail', config('itgurus.notify_email'))
-            ->notify(new ContactMessageReceived($message));
+        SafeMail::send(fn () => Notification::route('mail', config('itgurus.notify_email'))
+            ->notify(new ContactMessageReceived($message)));
 
         return redirect()->route('contact')->with('status', 'Thank you! Your message has been sent - we usually reply within a few days.');
     }

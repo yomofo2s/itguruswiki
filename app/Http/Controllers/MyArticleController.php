@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SafeMail;
 use App\Enums\ArticleStatus;
 use App\Http\Controllers\Concerns\HandlesCoverImage;
 use App\Http\Requests\ArticleRequest;
@@ -113,10 +114,10 @@ class MyArticleController extends Controller
         $article->save();
 
         if ($article->status === ArticleStatus::Pending && ! $wasPending) {
-            Notification::send(
+            SafeMail::send(fn () => Notification::send(
                 User::whereIn('role', ['admin', 'editor'])->whereKeyNot($user->getKey())->get(),
                 new ArticleSubmitted($article),
-            );
+            ));
             $message = 'Thanks! Your guide was sent to our editors for review.';
         }
 

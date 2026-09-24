@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SafeMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +36,7 @@ class ProfileController extends Controller
         $user->save();
 
         if ($user->email_verified_at === null) {
-            $user->sendEmailVerificationNotification();
+            SafeMail::send(fn () => $user->sendEmailVerificationNotification());
         }
 
         return back()->with('status', 'Profile saved.');
