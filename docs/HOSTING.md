@@ -81,7 +81,11 @@ ITG_CONTACT_EMAIL=info@itgurusgermany.com
 ITG_NOTIFY_EMAIL=info@itgurusgermany.com
 ITG_SOCIAL_WHATSAPP=
 ITG_SOCIAL_LINKEDIN=
+GOOGLE_TAG_MANAGER_ID=
 ```
+
+`GOOGLE_TAG_MANAGER_ID` is optional; leave it empty to disable GTM. Before enabling it in production, confirm
+the active GTM tags, consent requirements, and the published privacy notice with the site owner.
 
 ## 4. Build and upload (first deploy)
 

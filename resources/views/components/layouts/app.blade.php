@@ -1,4 +1,5 @@
 @props(['title' => null, 'description' => null])
+@php($googleTagManagerId = config('itgurus.google_tag_manager_id'))
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
@@ -14,8 +15,24 @@
     <link rel="icon" href="{{ asset('images/logo.jpeg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     {{ $head ?? '' }}
+
+    @if ($googleTagManagerId)
+    <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer',@json($googleTagManagerId));</script>
+    <!-- End Google Tag Manager -->
+    @endif
 </head>
 <body class="flex min-h-full flex-col">
+    @if ($googleTagManagerId)
+        <!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id={{ rawurlencode($googleTagManagerId) }}"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    @endif
     <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow">Skip to content</a>
 
     <header class="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur">

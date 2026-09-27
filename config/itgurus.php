@@ -8,6 +8,8 @@ return [
     // Where contact-form and volunteer notifications are sent.
     'notify_email' => env('ITG_NOTIFY_EMAIL', env('ITG_CONTACT_EMAIL', 'info@itgurusgermany.com')),
 
+    'google_tag_manager_id' => env('GOOGLE_TAG_MANAGER_ID'),
+
     // One-time browser setup for hosting without SSH/cron (see SetupController). Keep empty normally.
     'setup_token' => env('ITG_SETUP_TOKEN'),
 
