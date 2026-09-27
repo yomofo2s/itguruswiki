@@ -30,6 +30,21 @@ class PublicPagesTest extends TestCase
         $this->get($url)->assertOk();
     }
 
+    public function test_google_tag_manager_uses_configured_id_and_is_omitted_when_unset(): void
+    {
+        config(['itgurus.google_tag_manager_id' => 'GTM-TEST123']);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('https://www.googletagmanager.com/gtm.js?id=', false)
+            ->assertSee('GTM-TEST123', false)
+            ->assertSee('https://www.googletagmanager.com/ns.html?id=GTM-TEST123', false);
+
+        config(['itgurus.google_tag_manager_id' => null]);
+
+        $this->get('/')->assertOk()->assertDontSee('googletagmanager.com', false);
+    }
+
     public function test_home_shows_topics_and_published_guides_only(): void
     {
         $this->seed(CategorySeeder::class);

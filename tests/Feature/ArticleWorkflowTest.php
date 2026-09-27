@@ -124,7 +124,10 @@ class ArticleWorkflowTest extends TestCase
 
         $this->actingAs($editor)->post(route('dashboard.articles.store'), $this->guide([
             'action' => 'publish',
-            'cover' => UploadedFile::fake()->image('cover.jpg', 1200, 600),
+            'cover' => UploadedFile::fake()->createWithContent(
+                'cover.png',
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC'),
+            ),
         ]))->assertSessionHasNoErrors();
 
         $article = Article::sole();
