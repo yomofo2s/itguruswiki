@@ -211,6 +211,7 @@ jobs:
         env:
           SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
         run: |
+          SETUP_TOKEN=$(printf '%s' "$SETUP_TOKEN" | tr -d '[:space:]')
           out=$(curl -sS --max-time 120 "$SITE_URL/_setup/$SETUP_TOKEN")
           echo "$out" | grep -v -i "password"
           echo "$out" | grep -q "SETUP OK"
