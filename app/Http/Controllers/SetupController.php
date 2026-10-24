@@ -87,6 +87,15 @@ class SetupController extends Controller
             }
         }
 
+        // ?check=google - show whether Google sign-in is configured (never prints the id or secret).
+        if ($request->query('check') === 'google') {
+            $set = fn (string $key) => filled(config("services.google.{$key}")) ? 'set' : 'EMPTY';
+            $log[] = "Google sign-in:\nclient_id: {$set('client_id')}\nclient_secret: {$set('client_secret')}"
+                ."\nredirect: ".url((string) config('services.google.redirect'))
+                ."\n.env file: ".(is_file(base_path('.env')) ? 'found' : 'MISSING')
+                ."\nconfig cached: ".(app()->configurationIsCached() ? 'yes (run the setup URL without check to clear it)' : 'no');
+        }
+
         // ?log=1 - show the end of the newest error log (no SSH needed).
         if ($request->boolean('log')) {
             $files = glob(storage_path('logs/*.log')) ?: [];

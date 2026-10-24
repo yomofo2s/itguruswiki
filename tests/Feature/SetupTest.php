@@ -82,4 +82,14 @@ class SetupTest extends TestCase
             ->assertSee('MAIL OK')
             ->assertSee('SETUP OK');
     }
+
+    public function test_google_check_reports_status_without_leaking_secrets(): void
+    {
+        config(['services.google.client_id' => 'secret-id', 'services.google.client_secret' => '']);
+
+        $this->get('/_setup/'.$this->token.'?check=google')
+            ->assertSee('client_id: set')
+            ->assertSee('client_secret: EMPTY')
+            ->assertDontSee('secret-id');
+    }
 }
