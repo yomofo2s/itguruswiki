@@ -11,6 +11,10 @@
         </div>
         <button class="btn-primary w-full">Log in</button>
     </form>
+    @if (config('services.google.client_id'))
+        <div class="my-5 flex items-center gap-3 text-xs uppercase tracking-wide text-slate-400"><span class="h-px flex-1 bg-slate-200"></span>or<span class="h-px flex-1 bg-slate-200"></span></div>
+        <a href="{{ route('google.redirect') }}" class="btn-secondary w-full justify-center">Continue with Google</a>
+    @endif
     <x-slot:footer>
         <p class="mt-6 text-center text-sm text-slate-600">New here? <a href="{{ route('register') }}" class="font-semibold text-brand-700">Create an account</a></p>
     </x-slot:footer>
