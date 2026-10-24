@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\GoogleLoginController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ContactController;
@@ -48,6 +49,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('throttle:5,10');
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::get('/auth/google', [GoogleLoginController::class, 'redirect'])->name('google.redirect');
+    Route::get('/auth/google/callback', [GoogleLoginController::class, 'callback'])
+        ->middleware('throttle:10,1')->name('google.callback');
     Route::get('/forgot-password', [PasswordResetController::class, 'request'])->name('password.request');
     Route::post('/forgot-password', [PasswordResetController::class, 'email'])
         ->middleware('throttle:5,10')->name('password.email');
