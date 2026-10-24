@@ -135,15 +135,16 @@ jobs:
 
   deploy:
     # Automatic deployment to Hetzner Webhosting over SFTP (no SSH shell needed).
-    # Runs on every push to main once tests pass. Secrets are read as REPOSITORY
-    # secrets (Settings -> Secrets and variables -> Actions -> Repository secrets),
-    # not from an environment such as github-pages. Set the repository variable
+    # Runs on every push to main once tests pass. Secrets are read from the
+    # "production" environment (Settings -> Environments -> production), which
+    # should be limited to the main branch. Set the repository variable
     # DEPLOY_ENABLED=false to pause deploys.
     needs: [tests, migrations-mariadb]
     if: >-
       vars.DEPLOY_ENABLED != 'false' && github.ref == 'refs/heads/main' &&
       (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.deploy))
     runs-on: ubuntu-latest
+    environment: production
     concurrency:
       group: deploy-production
       cancel-in-progress: false
@@ -164,7 +165,7 @@ jobs:
           [ -n "$SFTP_PASSWORD" ] || missing="$missing SFTP_PASSWORD"
           [ -n "$SETUP_TOKEN" ] || missing="$missing ITG_SETUP_TOKEN"
           if [ -n "$missing" ]; then
-            echo "::error::Missing repository secrets:$missing. Add them under Settings → Secrets and variables → Actions → Repository secrets (not in the github-pages environment)."
+            echo "::error::Missing repository secrets:$missing. Add them under Settings → Environments → production → Environment secrets."
             exit 1
           fi
           echo "Deploying to $SFTP_HOST:$REMOTE_DIR"
