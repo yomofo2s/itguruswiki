@@ -40,8 +40,34 @@ news, events and a volunteer programme.
 3. SFTP upload to Hetzner. `.env`, uploads, logs and sessions on the server are never touched
 4. `/_setup/<token>` runs new migrations, then a smoke test of `/up` and `/`
 
-Needs the **repository** secrets `SFTP_HOST`, `SFTP_USER`, `SFTP_PASSWORD` and `ITG_SETUP_TOKEN` (not environment secrets). Set the variable `DEPLOY_ENABLED=false` to pause deploys.
+The deploy job runs in the GitHub **`production` environment**, limited to `main`, and waits for a required reviewer to approve.
+Its secrets live under Settings → Environments → production → *Environment secrets*:
+
+| Secret | Value |
+|---|---|
+| `SFTP_HOST` | Bare hostname only (no `sftp://`, port or spaces) |
+| `SFTP_USER`, `SFTP_PASSWORD` | SFTP login for the Hetzner account |
+| `ITG_SETUP_TOKEN` | At least 32 characters. Must match `ITG_SETUP_TOKEN` in the server `.env` |
+
+Do not also keep these as repository secrets: any collaborator with write access can read those from a branch workflow.
+Optional repository variables: `DEPLOY_ENABLED=false` pauses deploys, `SFTP_REMOTE_DIR` (default `itguruswiki`), `SITE_URL`.
+The daily `health-check` workflow reads the same environment secrets.
 Full runbook, first-time setup and backups: [docs/HOSTING.md](docs/HOSTING.md).
+
+### Test deployment
+
+Before merging, the maintainer deploys the branch to the **test site**: GitHub → Actions → **test-deploy** → Run workflow → enter the branch name.
+It builds the branch, uploads it to the test site, runs migrations and a smoke test. It never touches the live site.
+It runs in the `staging` environment, which needs its own settings (Settings → Environments → staging, maintainer as required reviewer):
+
+| Name | Kind | Value |
+|---|---|---|
+| `SFTP_HOST`, `SFTP_USER`, `SFTP_PASSWORD` | secret | SFTP login that can only reach the test site's folder |
+| `ITG_SETUP_TOKEN` | secret | At least 32 characters, same as in the test site's `.env` |
+| `SFTP_REMOTE_DIR` | variable | The test site's app folder on the server (not the live `itguruswiki`) |
+| `SITE_URL` | variable | The test site's URL (not `www.itgurusgermany.com`) |
+
+The test site needs its own folder, its own `.env` and its own database. Never point it at the live database.
 
 ## Local development
 
@@ -84,15 +110,53 @@ Run the tests: `php artisan test`.
 
 ## Contributing
 
-Clone over SSH, branch off `main`, open a pull request **into `main`**. CI (tests on PHP 8.3/8.4, MariaDB
-migrations, secret scan) must be green before merging. Merging deploys to the live site.
+Contributors work on branches in this repository. Nobody pushes to `main` directly. The maintainer approves every
+change, runs a test deployment, and then merges it into `main`. CI (tests on PHP 8.3/8.4, MariaDB migrations,
+secret scan) must be green first. Merging into `main` deploys to the live site after the `production` reviewer approves.
 
-```bash
-git checkout -b feature/my-change
-php artisan test
-git push --set-upstream origin feature/my-change
-```
+### Step by step
 
-Never commit `.env`, passwords, keys or database dumps.
+1. **Get access.** Ask the maintainer to add you as a collaborator, then accept the invitation by email.
+2. **Clone the repository** over HTTPS (no SSH key needed). Sign in with your GitHub account or a personal access token when asked:
+   ```bash
+   git clone https://github.com/yomofo2s/itguruswiki.git && cd itguruswiki
+   ```
+3. **Set up locally** (see [Local development](#local-development)):
+   ```bash
+   composer install && npm install && npm run build
+   cp .env.example .env && php artisan key:generate
+   touch database/database.sqlite && php artisan migrate --seed
+   ```
+4. **Pick a task** on the [project board](https://github.com/users/yomofo2s/projects/3) and tell the others you are working on it.
+5. **Create a branch from an up-to-date `main`.** Use `feature/…`, `fix/…` or `docs/…`:
+   ```bash
+   git checkout main && git pull
+   git checkout -b feature/my-change
+   ```
+6. **Make your change.** Keep it small and focused. Use `npm run dev` for hot reload while working on views.
+7. **Test it.** Run `php artisan test`, check the pages in the browser, and add or update tests for new behaviour.
+8. **Commit** with a message that says what changed and why:
+   ```bash
+   git add <files>
+   git commit -m "Add event registration link to event cards"
+   ```
+9. **Push your branch:**
+   ```bash
+   git push --set-upstream origin feature/my-change
+   ```
+10. **Open a pull request into `main`.** Describe the change, link the board item and add screenshots for visible changes.
+11. **Wait for CI and review.** Fix failures and review comments by committing to the same branch and pushing again.
+12. **The maintainer approves, runs the test deployment and merges.** The maintainer starts Actions → *test-deploy* with your branch name, checks the result on the test site, then merges. You do not merge or deploy yourself.
+13. **Clean up** after the merge:
+    ```bash
+    git checkout main && git pull && git branch -d feature/my-change
+    ```
+
+### Rules
+
+- Never commit `.env`, passwords, API keys, tokens or database dumps. The secret scan fails the PR if it finds one.
+- Do not edit `.github/workflows/` without asking the maintainer.
+- Deploy secrets live only in the GitHub `production` environment. Contributors never need them.
+- If a secret is committed by mistake, tell the maintainer right away so it can be rotated.
 
 See also the [code of conduct](CODE_OF_CONDUCT.md). Licensed under GPL-3.0.
