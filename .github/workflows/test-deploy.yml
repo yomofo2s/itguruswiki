@@ -1,0 +1,114 @@
+# Test deployment of a branch or pull request to the TEST site (never the live site).
+# Run it by hand: GitHub -> Actions -> test-deploy -> Run workflow, and enter the branch name.
+# It uses the "staging" environment (Settings -> Environments -> staging), which needs its own
+# secrets SFTP_HOST, SFTP_USER, SFTP_PASSWORD, ITG_SETUP_TOKEN, the variables SFTP_REMOTE_DIR and
+# SITE_URL of the TEST site, and the maintainer as required reviewer. Nothing here reads the
+# "production" environment.
+name: test-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch to test-deploy (for example feature/my-change)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-deploy
+  cancel-in-progress: false
+
+jobs:
+  test-deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      REMOTE_DIR: ${{ vars.SFTP_REMOTE_DIR }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - name: Check test-site settings
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+          SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+        run: |
+          missing=""
+          [ -n "$SFTP_HOST" ] || missing="$missing SFTP_HOST"
+          [ -n "$SFTP_USER" ] || missing="$missing SFTP_USER"
+          [ -n "$SFTP_PASSWORD" ] || missing="$missing SFTP_PASSWORD"
+          [ -n "$SETUP_TOKEN" ] || missing="$missing ITG_SETUP_TOKEN"
+          [ -n "$REMOTE_DIR" ] || missing="$missing SFTP_REMOTE_DIR(variable)"
+          [ -n "$SITE_URL" ] || missing="$missing SITE_URL(variable)"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing in the staging environment:$missing. Add them under Settings → Environments → staging."
+            exit 1
+          fi
+          # Safety: never let a test deploy touch the live site.
+          case "$SITE_URL" in
+            *://www.itgurusgermany.com*|*://itgurusgermany.com*)
+              echo "::error::SITE_URL points at the live site. Use the test site's URL."; exit 1 ;;
+          esac
+          case "${REMOTE_DIR%/}" in
+            itguruswiki|/itguruswiki|/usr/www/users/*/itguruswiki|public_html/itguruswiki)
+              echo "::error::SFTP_REMOTE_DIR looks like the live app folder. Use the test site's folder."; exit 1 ;;
+          esac
+          echo "Test-deploying ${{ inputs.ref }} to $SITE_URL ($REMOTE_DIR)"
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build production release
+        run: |
+          if [ -f composer.lock ]; then composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+          else composer update --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress; fi
+          npm ci && npm run build
+
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Upload via SFTP
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: |
+          # Never touch server-only data: .env, uploads, logs, sessions, caches.
+          EXCLUDES="-x ^\.git/ -x ^\.github/ -x ^node_modules/ -x ^tests/ -x ^\.env$ -x ^\.env\. \
+            -x ^storage/ -x ^public/storage -x ^bootstrap/cache/ -x ^database/.*\.sqlite -x ^vendor/"
+          lftp --env-password -u "$SFTP_USER" "sftp://$SFTP_HOST" <<LFTP
+          set sftp:auto-confirm yes
+          set net:max-retries 3
+          set net:timeout 30
+          set mirror:parallel-transfer-count 4
+          mirror --reverse --delete --verbose=1 --ignore-time vendor/ $REMOTE_DIR/vendor/
+          mirror --reverse --delete --verbose=1 $EXCLUDES ./ $REMOTE_DIR/
+          bye
+          LFTP
+
+      - name: Run database migrations on the test site
+        env:
+          SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+        run: |
+          SETUP_TOKEN=$(printf '%s' "$SETUP_TOKEN" | tr -d '[:space:]')
+          out=$(curl -sS --max-time 120 "$SITE_URL/_setup/$SETUP_TOKEN")
+          echo "$out" | grep -v -i "password"
+          echo "$out" | grep -q "SETUP OK"
+
+      - name: Smoke test
+        run: |
+          curl -fsS --max-time 30 "$SITE_URL/up" > /dev/null
+          curl -fsS --max-time 30 "$SITE_URL/" > /dev/null
+          echo "Test site is up: $SITE_URL"
