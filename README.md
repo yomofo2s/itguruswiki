@@ -64,8 +64,9 @@ It runs in the `staging` environment, which needs its own settings (Settings →
 |---|---|---|
 | `SFTP_HOST`, `SFTP_USER`, `SFTP_PASSWORD` | secret | SFTP login that can only reach the test site's folder |
 | `ITG_SETUP_TOKEN` | secret | At least 32 characters, same as in the test site's `.env` |
-| `SFTP_REMOTE_DIR` | variable | The test site's app folder on the server (not the live `itguruswiki`) |
+| `SFTP_REMOTE_DIR` | variable | The test site's app folder, for example `public_html/itguruswiki-test`. The name must contain `test` or `staging`, and it must not be the live `public_html/itguruswiki` |
 | `SITE_URL` | variable | The test site's URL (not `www.itgurusgermany.com`) |
+| `TEST_BASIC_AUTH_USER`, `TEST_BASIC_AUTH_PASSWORD` | secret (optional) | Only if the test site is behind basic auth, so the workflow can reach `/up`, `/` and the setup URL |
 
 The test site needs its own folder, its own `.env` and its own database. Never point it at the live database.
 

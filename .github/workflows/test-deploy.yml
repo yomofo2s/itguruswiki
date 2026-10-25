@@ -2,8 +2,9 @@
 # Run it by hand: GitHub -> Actions -> test-deploy -> Run workflow, and enter the branch name.
 # It uses the "staging" environment (Settings -> Environments -> staging), which needs its own
 # secrets SFTP_HOST, SFTP_USER, SFTP_PASSWORD, ITG_SETUP_TOKEN, the variables SFTP_REMOTE_DIR and
-# SITE_URL of the TEST site, and the maintainer as required reviewer. Nothing here reads the
-# "production" environment.
+# SITE_URL of the TEST site, and the maintainer as required reviewer. If the test site is behind
+# basic auth, also add the secrets TEST_BASIC_AUTH_USER and TEST_BASIC_AUTH_PASSWORD. The test
+# folder name must contain "test" or "staging". Nothing here reads the "production" environment.
 name: test-deploy
 
 on:
@@ -35,6 +36,7 @@ jobs:
           SFTP_USER: ${{ secrets.SFTP_USER }}
           SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
           SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+          REF: ${{ inputs.ref }}
         run: |
           missing=""
           [ -n "$SFTP_HOST" ] || missing="$missing SFTP_HOST"
@@ -56,7 +58,12 @@ jobs:
             itguruswiki|/itguruswiki|/usr/www/users/*/itguruswiki|public_html/itguruswiki)
               echo "::error::SFTP_REMOTE_DIR looks like the live app folder. Use the test site's folder."; exit 1 ;;
           esac
-          echo "Test-deploying ${{ inputs.ref }} to $SITE_URL ($REMOTE_DIR)"
+          # Safety: the test folder must be recognisably a test folder.
+          case "$REMOTE_DIR" in
+            *test*|*staging*) ;;
+            *) echo "::error::SFTP_REMOTE_DIR must contain \"test\" or \"staging\" (got $REMOTE_DIR)."; exit 1 ;;
+          esac
+          echo "Test-deploying $REF to $SITE_URL ($REMOTE_DIR)"
 
       - uses: actions/checkout@v5
         with:
@@ -101,14 +108,21 @@ jobs:
       - name: Run database migrations on the test site
         env:
           SETUP_TOKEN: ${{ secrets.ITG_SETUP_TOKEN }}
+          BASIC_USER: ${{ secrets.TEST_BASIC_AUTH_USER }}
+          BASIC_PASSWORD: ${{ secrets.TEST_BASIC_AUTH_PASSWORD }}
         run: |
           SETUP_TOKEN=$(printf '%s' "$SETUP_TOKEN" | tr -d '[:space:]')
-          out=$(curl -sS --max-time 120 "$SITE_URL/_setup/$SETUP_TOKEN")
+          auth=(); [ -z "$BASIC_USER" ] || auth=(-u "$BASIC_USER:$BASIC_PASSWORD")
+          out=$(curl -sS --max-time 120 "${auth[@]}" "$SITE_URL/_setup/$SETUP_TOKEN")
           echo "$out" | grep -v -i "password"
           echo "$out" | grep -q "SETUP OK"
 
       - name: Smoke test
+        env:
+          BASIC_USER: ${{ secrets.TEST_BASIC_AUTH_USER }}
+          BASIC_PASSWORD: ${{ secrets.TEST_BASIC_AUTH_PASSWORD }}
         run: |
-          curl -fsS --max-time 30 "$SITE_URL/up" > /dev/null
-          curl -fsS --max-time 30 "$SITE_URL/" > /dev/null
+          auth=(); [ -z "$BASIC_USER" ] || auth=(-u "$BASIC_USER:$BASIC_PASSWORD")
+          curl -fsS --max-time 30 "${auth[@]}" "$SITE_URL/up" > /dev/null
+          curl -fsS --max-time 30 "${auth[@]}" "$SITE_URL/" | grep -q "IT GURUs"
           echo "Test site is up: $SITE_URL"
