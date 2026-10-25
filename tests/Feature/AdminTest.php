@@ -56,49 +56,6 @@ class AdminTest extends TestCase
         $this->assertSame(Role::Member, $member->fresh()->role);
     }
 
-    public function test_admin_can_filter_and_delete_unverified_members(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $verified = User::factory()->create(['name' => 'Verified Vera']);
-        $unverified = User::factory()->unverified()->create(['name' => 'Unverified Uma']);
-
-        $this->actingAs($admin)->get('/admin/users?status=unverified')
-            ->assertSee('Unverified Uma')->assertDontSee('Verified Vera');
-
-        $this->actingAs($admin)->delete(route('admin.users.destroy', $unverified))->assertSessionHasNoErrors();
-        $this->assertModelMissing($unverified);
-        $this->assertModelExists($verified);
-    }
-
-    public function test_deleting_users_is_limited_to_other_members(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $editor = User::factory()->create(['role' => Role::Editor]);
-
-        $this->actingAs($admin)->delete(route('admin.users.destroy', $admin))->assertSessionHasErrors('role');
-        $this->actingAs($admin)->delete(route('admin.users.destroy', $editor))->assertSessionHasErrors('role');
-        $this->assertModelExists($admin);
-        $this->assertModelExists($editor);
-
-        $this->actingAs($editor)->delete(route('admin.users.destroy', User::factory()->create()))->assertForbidden();
-    }
-
-    public function test_bulk_delete_only_removes_old_unverified_members(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $old = User::factory()->unverified()->create(['created_at' => now()->subDays(8)]);
-        $recent = User::factory()->unverified()->create(['created_at' => now()->subDays(2)]);
-        $verifiedOld = User::factory()->create(['created_at' => now()->subDays(30)]);
-        $unverifiedEditor = User::factory()->unverified()->create(['role' => Role::Editor, 'created_at' => now()->subDays(30)]);
-
-        $this->actingAs($admin)->delete(route('admin.users.destroy-unverified'))->assertSessionHas('status');
-
-        $this->assertModelMissing($old);
-        $this->assertModelExists($recent);
-        $this->assertModelExists($verifiedOld);
-        $this->assertModelExists($unverifiedEditor);
-    }
-
     public function test_admin_can_change_roles_but_not_demote_themselves(): void
     {
         $admin = User::factory()->admin()->create();

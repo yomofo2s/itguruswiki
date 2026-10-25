@@ -51,7 +51,7 @@
             <form method="POST" action="{{ route('volunteer.store') }}" class="card relative space-y-5 p-6 sm:p-8">
                 @csrf
                 <x-form.honeypot />
-                <x-form.timer />
+                <input type="hidden" name="started_at" value="{{ \Illuminate\Support\Facades\Crypt::encryptString(now()->timestamp) }}">
                 <div class="grid gap-5 sm:grid-cols-2">
                     <x-form.input name="name" label="Name" required autocomplete="name" :value="auth()->user()?->name" />
                     <x-form.input name="email" label="Email" type="email" required autocomplete="email" :value="auth()->user()?->email" />

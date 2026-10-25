@@ -2,7 +2,6 @@
     <form method="POST" action="{{ route('register') }}" class="relative space-y-5">
         @csrf
         <x-form.honeypot />
-        <x-form.timer />
         <x-form.input name="name" label="Name" required autofocus autocomplete="name" />
         <x-form.input name="email" label="Email" type="email" required autocomplete="username" />
         <x-form.input name="password" label="Password" type="password" required autocomplete="new-password" hint="At least 10 characters with letters and numbers." />
