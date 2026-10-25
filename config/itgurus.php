@@ -8,6 +8,12 @@ return [
     // Where contact-form and volunteer notifications are sent.
     'notify_email' => env('ITG_NOTIFY_EMAIL', env('ITG_CONTACT_EMAIL', 'info@itgurusgermany.com')),
 
+    // Controller named in the privacy notice (Art. 13 DSGVO). Set these to the operator's real details.
+    'legal' => [
+        'name' => env('ITG_LEGAL_NAME'),
+        'address' => env('ITG_LEGAL_ADDRESS'),
+    ],
+
     'google_tag_manager_id' => env('GOOGLE_TAG_MANAGER_ID'),
 
     // One-time browser setup for hosting without SSH/cron (see SetupController). Keep empty normally.
