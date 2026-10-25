@@ -124,4 +124,23 @@ class PublicPagesTest extends TestCase
     {
         $this->get('/guides/does-not-exist')->assertNotFound()->assertSee('find that page');
     }
+
+    public function test_privacy_notice_names_the_controller_and_only_mentions_services_in_use(): void
+    {
+        config([
+            'itgurus.legal.name' => 'Ada Example e.V.',
+            'itgurus.legal.address' => 'Musterstr. 1|10115 Berlin',
+            'services.google.client_id' => null,
+            'services.turnstile.site_key' => null,
+            'itgurus.google_tag_manager_id' => null,
+        ]);
+
+        $this->get('/privacy')->assertOk()
+            ->assertSee('Ada Example e.V.')->assertSee('10115 Berlin')->assertSee('Art. 15 GDPR')
+            ->assertDontSee('Cloudflare Turnstile')->assertDontSee('Sign in with Google')->assertDontSee('Tag Manager');
+
+        config(['services.google.client_id' => 'id', 'services.turnstile.site_key' => 'k', 'itgurus.google_tag_manager_id' => 'GTM-X']);
+
+        $this->get('/privacy')->assertSee('Cloudflare Turnstile')->assertSee('Sign in with Google')->assertSee('Tag Manager');
+    }
 }
