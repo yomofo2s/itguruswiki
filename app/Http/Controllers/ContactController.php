@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\Turnstile;
 use App\Support\SafeMail;
 use App\Models\ContactMessage;
 use App\Notifications\ContactMessageReceived;
@@ -26,9 +27,10 @@ class ContactController extends Controller
             'subject' => ['required', 'string', 'max:200'],
             'message' => ['required', 'string', 'min:10', 'max:5000'],
             'website' => ['prohibited'], // honeypot
+            'cf-turnstile-response' => [new Turnstile],
         ]);
 
-        $message = ContactMessage::create(Arr::except($data, 'website') + ['ip_address' => $request->ip()]);
+        $message = ContactMessage::create(Arr::except($data, ['website', 'cf-turnstile-response']) + ['ip_address' => $request->ip()]);
 
         SafeMail::send(fn () => Notification::route('mail', config('itgurus.notify_email'))
             ->notify(new ContactMessageReceived($message)));

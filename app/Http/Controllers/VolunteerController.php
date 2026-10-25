@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Rules\Turnstile;
 use App\Support\FormTimer;
 use App\Support\SafeMail;
 use App\Models\Volunteer;
@@ -24,6 +25,7 @@ class VolunteerController extends Controller
             'message' => ['nullable', 'string', 'max:2000'],
             'website' => ['prohibited'],
             'started_at' => ['required', 'string'],
+            'cf-turnstile-response' => [new Turnstile],
         ]);
 
         abort_unless(FormTimer::passes($data['started_at']), 422, 'Please reload the page and try again.');
@@ -33,7 +35,7 @@ class VolunteerController extends Controller
 
         $volunteer = Volunteer::firstOrCreate(
             ['email' => $data['email']],
-            Arr::except($data, ['website', 'started_at', 'email']),
+            Arr::except($data, ['website', 'started_at', 'email', 'cf-turnstile-response']),
         );
 
         // Store everything, but cap alert emails so a flood can't fill the inbox.

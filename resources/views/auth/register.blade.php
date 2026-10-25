@@ -14,6 +14,7 @@
             </label>
             @error('terms')<p class="field-error">{{ $message }}</p>@enderror
         </div>
+        <x-form.turnstile />
         <button class="btn-primary w-full">Create account</button>
     </form>
     @if (config('services.google.client_id'))
