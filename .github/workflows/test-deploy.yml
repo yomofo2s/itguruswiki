@@ -93,6 +93,8 @@ jobs:
           LFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
         run: |
           # Never touch server-only data: .env, uploads, logs, sessions, caches.
+          # No --ignore-time on vendor/: Composer's autoload files keep the same size between builds
+          # while their random suffix changes, so a size-only compare leaves a mixed, broken vendor/.
           EXCLUDES="-x ^\.git/ -x ^\.github/ -x ^node_modules/ -x ^tests/ -x ^\.env$ -x ^\.env\. \
             -x ^storage/ -x ^public/storage -x ^bootstrap/cache/ -x ^database/.*\.sqlite -x ^vendor/"
           lftp --env-password -u "$SFTP_USER" "sftp://$SFTP_HOST" <<LFTP
@@ -100,7 +102,7 @@ jobs:
           set net:max-retries 3
           set net:timeout 30
           set mirror:parallel-transfer-count 4
-          mirror --reverse --delete --verbose=1 --ignore-time vendor/ $REMOTE_DIR/vendor/
+          mirror --reverse --delete --verbose=1 vendor/ $REMOTE_DIR/vendor/
           mirror --reverse --delete --verbose=1 $EXCLUDES ./ $REMOTE_DIR/
           bye
           LFTP
