@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\FormTimer;
 use App\Support\SafeMail;
 use App\Models\Volunteer;
 use App\Notifications\VolunteerSignedUp;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
@@ -26,9 +26,7 @@ class VolunteerController extends Controller
             'started_at' => ['required', 'string'],
         ]);
 
-        // Spam bots post instantly or replay a stale form; people take a few seconds.
-        $age = now()->timestamp - (int) rescue(fn () => Crypt::decryptString($data['started_at']), 0, false);
-        abort_if($age < 4 || $age > 7200, 422, 'Please reload the page and try again.');
+        abort_unless(FormTimer::passes($data['started_at']), 422, 'Please reload the page and try again.');
 
         // Links in the name or skills are a spam signal; a repeat sign-up adds nothing.
         abort_if(preg_match('~https?://|www\.~i', $data['name'].' '.($data['skills'] ?? '')), 422);

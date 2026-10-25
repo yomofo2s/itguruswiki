@@ -1,9 +1,24 @@
 <x-layouts.admin title="Users & roles">
-    <form method="GET" class="mb-4 w-full sm:w-72"><input type="search" name="q" value="{{ $q }}" placeholder="Search name or email…" class="input"></form>
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+        <form method="GET" class="w-full sm:w-72">
+            @if ($unverifiedOnly)<input type="hidden" name="status" value="unverified">@endif
+            <input type="search" name="q" value="{{ $q }}" placeholder="Search name or email…" class="input">
+        </form>
+        <a href="{{ route('admin.users.index', $unverifiedOnly ? [] : ['status' => 'unverified']) }}" class="btn-secondary btn-sm">
+            {{ $unverifiedOnly ? 'Show everyone' : "Unverified only ({$unverifiedCount})" }}
+        </a>
+        @if ($staleUnverifiedCount > 0)
+            <form method="POST" action="{{ route('admin.users.destroy-unverified') }}" onsubmit="return confirm('Delete {{ $staleUnverifiedCount }} unverified member account(s) older than 7 days? This cannot be undone.')">
+                @csrf @method('DELETE')
+                <button class="btn-secondary btn-sm text-red-700">Delete {{ $staleUnverifiedCount }} unverified (older than 7 days)</button>
+            </form>
+        @endif
+    </div>
+    @error('role')<p class="field-error mb-3">{{ $message }}</p>@enderror
     <div class="card overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <tr><th class="px-5 py-3">User</th><th class="px-5 py-3">Guides</th><th class="px-5 py-3">Joined</th><th class="px-5 py-3">Role</th></tr>
+                <tr><th class="px-5 py-3">User</th><th class="px-5 py-3">Guides</th><th class="px-5 py-3">Joined</th><th class="px-5 py-3">Role</th><th class="px-5 py-3"></th></tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
                 @foreach ($users as $user)
@@ -21,6 +36,14 @@
                                 </select>
                                 <button class="btn-secondary btn-sm">Save</button>
                             </form>
+                        </td>
+                        <td class="px-5 py-3 text-right">
+                            @if ($user->role === \App\Enums\Role::Member && ! $user->is(auth()->user()))
+                                <form method="POST" action="{{ route('admin.users.destroy', $user) }}" onsubmit="return confirm('Delete {{ addslashes($user->name) }}? This cannot be undone.')">
+                                    @csrf @method('DELETE')
+                                    <button class="text-sm font-medium text-red-700 hover:text-red-800">Delete</button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                 @endforeach

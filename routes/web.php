@@ -117,5 +117,7 @@ Route::middleware(['auth', 'verified', 'can:access-admin'])->prefix('admin')->na
     Route::middleware('can:manage-users')->group(function () {
         Route::get('/users', [Admin\UserController::class, 'index'])->name('users.index');
         Route::patch('/users/{user}', [Admin\UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/unverified', [Admin\UserController::class, 'destroyUnverified'])->name('users.destroy-unverified');
+        Route::delete('/users/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
     });
 });

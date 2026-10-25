@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Tests\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -25,6 +26,7 @@ class AuthTest extends TestCase
             'password' => 'secret-password-1',
             'password_confirmation' => 'secret-password-1',
             'terms' => '1',
+            'started_at' => $this->startedAt(10),
         ])->assertRedirect(route('verification.notice'));
 
         $user = User::where('email', 'ada@example.com')->firstOrFail();
@@ -45,10 +47,32 @@ class AuthTest extends TestCase
         $this->post('/register', [
             'name' => 'Bot', 'email' => 'bot@example.com',
             'password' => 'secret-password-1', 'password_confirmation' => 'secret-password-1',
-            'terms' => '1', 'website' => 'http://spam.example',
+            'terms' => '1', 'website' => 'http://spam.example', 'started_at' => $this->startedAt(10),
         ])->assertSessionHasErrors('website');
 
         $this->assertDatabaseMissing('users', ['email' => 'bot@example.com']);
+    }
+
+    private function startedAt(int $secondsAgo): string
+    {
+        return Crypt::encryptString((string) now()->subSeconds($secondsAgo)->timestamp);
+    }
+
+    public function test_registration_rejects_instant_stale_tampered_and_link_spam(): void
+    {
+        $form = fn (array $o = []) => $o + [
+            'name' => 'Ada Obi', 'email' => 'ada@example.com',
+            'password' => 'secret-password-1', 'password_confirmation' => 'secret-password-1',
+            'terms' => '1', 'started_at' => $this->startedAt(10),
+        ];
+
+        $this->post('/register', $form(['started_at' => $this->startedAt(0)]))->assertSessionHasErrors('email');
+        $this->post('/register', $form(['started_at' => $this->startedAt(9000)]))->assertSessionHasErrors('email');
+        $this->post('/register', $form(['started_at' => 'garbage']))->assertSessionHasErrors('email');
+        $this->post('/register', $form(['name' => 'Buy at https://spam.example']))->assertSessionHasErrors('email');
+        $this->post('/register', $form(['started_at' => null]))->assertSessionHasErrors('started_at');
+
+        $this->assertSame(0, User::count());
     }
 
     public function test_users_can_log_in_and_out(): void
