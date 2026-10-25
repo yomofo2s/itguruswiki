@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Support\FormTimer;
 use App\Support\SafeMail;
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -10,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
@@ -27,7 +29,12 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
             'website' => ['prohibited'], // honeypot
             'terms' => ['accepted'],
+            'started_at' => ['required', 'string'],
         ]);
+
+        if (! FormTimer::passes($data['started_at']) || preg_match('~https?://|www\.~i', $data['name'])) {
+            throw ValidationException::withMessages(['email' => 'We could not create the account. Please reload the page and try again.']);
+        }
 
         $user = User::create([
             'name' => $data['name'],
