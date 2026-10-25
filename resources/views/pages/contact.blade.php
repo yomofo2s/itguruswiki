@@ -23,6 +23,7 @@
             <x-form.input name="subject" label="Subject" required maxlength="200" :value="request('subject')" />
             <x-form.textarea name="message" label="Message" rows="6" required minlength="10" maxlength="5000" />
             <p class="text-xs text-slate-500">We only use your details to answer your message. See our <a href="{{ route('privacy') }}" class="underline">privacy notice</a>.</p>
+            <x-form.turnstile />
             <button class="btn-primary">Send message</button>
         </form>
     </div>

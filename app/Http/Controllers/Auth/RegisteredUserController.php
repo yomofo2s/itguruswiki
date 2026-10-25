@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Rules\Turnstile;
 use App\Support\FormTimer;
 use App\Support\SafeMail;
 use App\Http\Controllers\Controller;
@@ -30,6 +31,7 @@ class RegisteredUserController extends Controller
             'website' => ['prohibited'], // honeypot
             'terms' => ['accepted'],
             'started_at' => ['required', 'string'],
+            'cf-turnstile-response' => [new Turnstile],
         ]);
 
         if (! FormTimer::passes($data['started_at']) || preg_match('~https?://|www\.~i', $data['name'])) {

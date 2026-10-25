@@ -59,6 +59,7 @@
                 <x-form.select name="interest" label="How would you like to help?" :options="$interests" placeholder="Choose one…" required />
                 <x-form.input name="skills" label="Skills or experience (optional)" maxlength="500" placeholder="e.g. Laravel developer, studied in Aachen, HR recruiter" />
                 <x-form.textarea name="message" label="Anything else? (optional)" rows="3" maxlength="2000" />
+                <x-form.turnstile />
                 <button class="btn-primary w-full sm:w-auto">Sign me up</button>
             </form>
         </div>
